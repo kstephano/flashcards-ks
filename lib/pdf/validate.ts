@@ -1,4 +1,5 @@
-import pdfParse from 'pdf-parse';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse = require('pdf-parse') as (buffer: Buffer) => Promise<{ numpages: number; text: string }>;
 
 const MAX_PAGES = 100;
 const MAX_BYTES = 50 * 1024 * 1024;
