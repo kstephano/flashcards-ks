@@ -11,12 +11,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const userId = session.user.id;
 
   const { id } = await params;
-  const { cardId, quality } = await req.json() as { cardId: string; quality: number };
+
+  let body: { cardId: string; quality: number };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+  const { cardId, quality } = body;
 
   const reviewSession = await db.query.reviewSessions.findFirst({
     where: and(eq(reviewSessions.id, id), eq(reviewSessions.userId, userId)),
   });
   if (!reviewSession) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  if (reviewSession.endedAt) {
+    return NextResponse.json({ error: 'Session already ended' }, { status: 409 });
+  }
+
+  if (!cardId || typeof cardId !== 'string') {
+    return NextResponse.json({ error: 'cardId is required' }, { status: 400 });
+  }
 
   if (!Number.isInteger(quality) || quality < 0 || quality > 5) {
     return NextResponse.json({ error: 'quality must be an integer 0–5' }, { status: 400 });

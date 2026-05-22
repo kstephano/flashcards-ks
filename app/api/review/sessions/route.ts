@@ -18,7 +18,13 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userId = session.user.id;
 
-  const { deckId } = await req.json() as { deckId: string };
+  let body: { deckId: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+  const { deckId } = body;
   if (!deckId) return NextResponse.json({ error: 'deckId required' }, { status: 400 });
 
   const deck = await ownedDeck(deckId, userId);

@@ -16,6 +16,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   });
   if (!reviewSession) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+  if (reviewSession.endedAt) {
+    return NextResponse.json({ error: 'Session already ended' }, { status: 409 });
+  }
+
   const [updated] = await db
     .update(reviewSessions)
     .set({ endedAt: new Date() })
