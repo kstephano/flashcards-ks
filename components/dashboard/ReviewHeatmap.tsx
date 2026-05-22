@@ -74,13 +74,24 @@ export function ReviewHeatmap({ data }: Props) {
       <div className="flex gap-1">
         {weeks.map((week, wi) => (
           <div key={wi} className="flex flex-col gap-1">
-            {week.map((cell) => (
-              <div
-                key={cell.date}
-                className={`w-3 h-3 rounded-sm ${getCellColor(cell.count)}`}
-                title={`${cell.date}: ${cell.count} review${cell.count !== 1 ? 's' : ''}`}
-              />
-            ))}
+            {week.map((cell) => {
+              const cellDate = new Date(cell.date + 'T00:00:00');
+              if (cellDate > today) {
+                return (
+                  <div
+                    key={cell.date}
+                    className="w-3 h-3 rounded-sm bg-transparent border border-dashed border-muted-foreground/20"
+                  />
+                );
+              }
+              return (
+                <div
+                  key={cell.date}
+                  className={`w-3 h-3 rounded-sm ${getCellColor(cell.count)}`}
+                  title={`${cell.date}: ${cell.count} review${cell.count !== 1 ? 's' : ''}`}
+                />
+              );
+            })}
           </div>
         ))}
       </div>

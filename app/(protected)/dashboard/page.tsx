@@ -51,7 +51,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/dashboard')
+    const controller = new AbortController();
+    fetch('/api/dashboard', { signal: controller.signal })
       .then(async (res) => {
         if (!res.ok) {
           const text = await res.text();
@@ -63,11 +64,13 @@ export default function DashboardPage() {
         setData(d);
       })
       .catch((err: unknown) => {
+        if (err instanceof Error && err.name === 'AbortError') return;
         setError(err instanceof Error ? err.message : String(err));
       })
       .finally(() => {
         setLoading(false);
       });
+    return () => controller.abort();
   }, []);
 
   if (loading) {

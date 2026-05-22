@@ -12,7 +12,7 @@ export function AreaInsights({ insights }: Props) {
   return (
     <ul className="list-disc list-inside space-y-1 text-sm text-foreground">
       {insights.map((insight, i) => (
-        <li key={i}>{insight}</li>
+        <li key={insight}>{insight}</li>
       ))}
     </ul>
   );

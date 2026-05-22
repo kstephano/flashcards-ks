@@ -20,7 +20,7 @@ export function ModelSpendChart({ data }: Props) {
 
   const formatted = data.map((d) => ({
     ...d,
-    modelLabel: d.model.slice(-10),
+    modelLabel: d.model.length > 15 ? d.model.slice(0, 14) + '…' : d.model,
   }));
 
   return (
