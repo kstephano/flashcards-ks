@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
-import { generationJobs } from '@/lib/db/schema';
+import { generationJobs, userSettings } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 
@@ -9,6 +9,10 @@ export async function GET() {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userId = session.user.id;
+
+  // Fetch user settings for dynamic thresholds
+  const settings = await db.query.userSettings.findFirst({ where: eq(userSettings.userId, userId) });
+  const spendCapUsd = Number(settings?.monthlySpendCapUsd ?? 50);
 
   // Run all queries in parallel
   const [
@@ -72,7 +76,7 @@ export async function GET() {
       SELECT date_trunc('day', aul.timestamp)::date AS day,
              SUM(aul.cost_usd) AS total_usd
       FROM api_usage_log aul
-      JOIN generation_jobs gj ON aul.job_id = gj.id
+      JOIN generation_jobs gj ON aul.job_id = gj.id -- only usage linked to jobs; unlinked rows (job_id IS NULL) are excluded
       WHERE gj.user_id = ${userId}::uuid
         AND aul.timestamp >= now() - INTERVAL '30 days'
       GROUP BY date_trunc('day', aul.timestamp)
@@ -84,19 +88,25 @@ export async function GET() {
       SELECT aul.model,
              SUM(aul.cost_usd) AS total_usd
       FROM api_usage_log aul
-      JOIN generation_jobs gj ON aul.job_id = gj.id
+      JOIN generation_jobs gj ON aul.job_id = gj.id -- only usage linked to jobs; unlinked rows (job_id IS NULL) are excluded
       WHERE gj.user_id = ${userId}::uuid
         AND date_trunc('month', aul.timestamp) = date_trunc('month', now())
       GROUP BY aul.model
       ORDER BY total_usd DESC
     `),
 
-    // Cache hit rate from view (last 30 days)
+    // Cache hit rate (user-scoped, last 30 days)
     db.execute(sql`
-      SELECT day::text, hit_rate_pct, total_calls
-      FROM v_cache_hit_rate_daily
-      WHERE day >= (now() - INTERVAL '30 days')::date
-      ORDER BY day
+      SELECT
+        date_trunc('day', aul.timestamp)::date AS day,
+        ROUND(100.0 * COUNT(*) FILTER (WHERE aul.cache_hit = true) / NULLIF(COUNT(*), 0), 1) AS hit_rate_pct,
+        COUNT(*) AS total_calls
+      FROM api_usage_log aul
+      JOIN generation_jobs gj ON aul.job_id = gj.id
+      WHERE gj.user_id = ${userId}::uuid
+        AND aul.timestamp >= now() - INTERVAL '30 days'
+      GROUP BY 1
+      ORDER BY 1
     `),
 
     // Judge scores by week, last 12 weeks
@@ -185,19 +195,18 @@ export async function GET() {
       ORDER BY day
     `),
 
-    // Retention by deck
+    // Retention by deck (total_cards = all cards in deck, retained = cards with last_review_quality >= 3)
     db.execute(sql`
-      SELECT d.name AS deck_name,
-             COUNT(c.id) FILTER (WHERE c.last_review_quality >= 3) AS retained,
-             COUNT(c.id) AS total_cards
+      SELECT
+        d.name AS deck_name,
+        COUNT(c.id) AS total_cards,
+        COUNT(c.id) FILTER (WHERE c.last_review_quality >= 3) AS retained_count
       FROM decks d
-      JOIN cards c ON c.deck_id = d.id
-      JOIN sections s ON d.section_id = s.id
-      JOIN projects p ON s.project_id = p.id
+      JOIN sections s ON s.id = d.section_id
+      JOIN projects p ON p.id = s.project_id
+      LEFT JOIN cards c ON c.deck_id = d.id
       WHERE p.user_id = ${userId}::uuid
-        AND c.last_reviewed_at IS NOT NULL
       GROUP BY d.id, d.name
-      ORDER BY d.name
     `),
 
     // Recent jobs (last 10)
@@ -244,7 +253,7 @@ export async function GET() {
   const cacheHitRate = cacheHitRateResult.rows.map((row) => {
     const r = row as Record<string, unknown>;
     return {
-      day: String(r.day),
+      day: String(r.day ?? ''),
       hitRatePct: Number(r.hit_rate_pct ?? 0),
       totalCalls: Number(r.total_calls ?? 0),
     };
@@ -310,8 +319,8 @@ export async function GET() {
   const retentionByDeck = retentionByDeckResult.rows.map((row) => {
     const r = row as Record<string, unknown>;
     const totalCards = Number(r.total_cards ?? 0);
-    const retained = Number(r.retained ?? 0);
-    const retentionPct = totalCards > 0 ? Math.round((retained / totalCards) * 100) : 0;
+    const retainedCount = Number(r.retained_count ?? 0);
+    const retentionPct = totalCards > 0 ? Math.round((retainedCount / totalCards) * 100) : 0;
     return {
       deckName: String(r.deck_name ?? ''),
       retentionPct,
@@ -350,8 +359,8 @@ export async function GET() {
     );
   }
 
-  // Monthly spend approaching cap
-  if (monthlySpendUsd > 40) {
+  // Monthly spend approaching cap (warn at 80% of user's monthly spend cap)
+  if (monthlySpendUsd > spendCapUsd * 0.8) {
     areaInsights.push(
       `Monthly spend is $${monthlySpendUsd.toFixed(2)} — approaching your cap.`,
     );
