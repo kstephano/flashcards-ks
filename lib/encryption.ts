@@ -1,6 +1,8 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
-const KEY = Buffer.from(process.env.ENCRYPTION_KEY!, 'hex');
+const raw = process.env.ENCRYPTION_KEY;
+if (!raw || raw.length !== 64) throw new Error('ENCRYPTION_KEY must be a 64-char hex string');
+const KEY = Buffer.from(raw, 'hex');
 
 export function encrypt(text: string): string {
   const iv = randomBytes(16);

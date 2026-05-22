@@ -126,7 +126,7 @@ export default function SettingsPage() {
             min={0}
             step={0.01}
             value={monthlySpendCap}
-            onChange={(e) => setMonthlySpendCap(e.target.value)}
+            onChange={(e) => { setSuccess(false); setMonthlySpendCap(e.target.value); }}
           />
           <p className="text-xs text-muted-foreground">
             Stop generating new cards when monthly API spend reaches this amount.
@@ -144,7 +144,7 @@ export default function SettingsPage() {
             min={0}
             max={10}
             value={maxWebSearches}
-            onChange={(e) => setMaxWebSearches(e.target.value)}
+            onChange={(e) => { setSuccess(false); setMaxWebSearches(e.target.value); }}
           />
           <p className="text-xs text-muted-foreground">
             Maximum number of web searches per generation job (0–10).
@@ -183,6 +183,7 @@ export default function SettingsPage() {
                 value={clearApiKey ? '' : apiKey}
                 placeholder={clearApiKey ? 'Enter new API key or leave blank to remove' : 'sk-ant-...'}
                 onChange={(e) => {
+                  setSuccess(false);
                   setClearApiKey(false);
                   setApiKey(e.target.value);
                 }}

@@ -41,54 +41,72 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const userId = session.user.id;
-  const body = (await req.json()) as {
-    monthlySpendCapUsd?: number;
-    defaultMaxWebSearches?: number;
-    apiKey?: string;
-  };
 
-  const updates: {
-    monthlySpendCapUsd?: string;
-    defaultMaxWebSearches?: number;
-    anthropicApiKeyEncrypted?: string | null;
-  } = {};
+  let body: { monthlySpendCapUsd?: number; defaultMaxWebSearches?: number; apiKey?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
 
-  if (body.monthlySpendCapUsd !== undefined) {
-    updates.monthlySpendCapUsd = String(body.monthlySpendCapUsd);
-  }
-  if (body.defaultMaxWebSearches !== undefined) {
-    updates.defaultMaxWebSearches = body.defaultMaxWebSearches;
-  }
-  if (body.apiKey !== undefined) {
-    if (body.apiKey === '') {
-      updates.anthropicApiKeyEncrypted = null;
-    } else {
-      updates.anthropicApiKeyEncrypted = encrypt(body.apiKey);
+  try {
+    if (body.monthlySpendCapUsd !== undefined) {
+      if (typeof body.monthlySpendCapUsd !== 'number' || body.monthlySpendCapUsd < 0) {
+        return NextResponse.json({ error: 'monthlySpendCapUsd must be a non-negative number' }, { status: 400 });
+      }
     }
-  }
+    if (body.defaultMaxWebSearches !== undefined) {
+      if (!Number.isInteger(body.defaultMaxWebSearches) || body.defaultMaxWebSearches < 0 || body.defaultMaxWebSearches > 20) {
+        return NextResponse.json({ error: 'defaultMaxWebSearches must be an integer 0–20' }, { status: 400 });
+      }
+    }
 
-  await db
-    .insert(userSettings)
-    .values({ userId, ...updates })
-    .onConflictDoUpdate({ target: userSettings.userId, set: updates });
+    const updates: {
+      monthlySpendCapUsd?: string;
+      defaultMaxWebSearches?: number;
+      anthropicApiKeyEncrypted?: string | null;
+    } = {};
 
-  const [updated] = await db
-    .select()
-    .from(userSettings)
-    .where(eq(userSettings.userId, userId))
-    .limit(1);
+    if (body.monthlySpendCapUsd !== undefined) {
+      updates.monthlySpendCapUsd = String(body.monthlySpendCapUsd);
+    }
+    if (body.defaultMaxWebSearches !== undefined) {
+      updates.defaultMaxWebSearches = body.defaultMaxWebSearches;
+    }
+    if (body.apiKey !== undefined) {
+      if (body.apiKey === '') {
+        updates.anthropicApiKeyEncrypted = null;
+      } else {
+        updates.anthropicApiKeyEncrypted = encrypt(body.apiKey);
+      }
+    }
 
-  if (!updated) {
+    await db
+      .insert(userSettings)
+      .values({ userId, ...updates })
+      .onConflictDoUpdate({ target: userSettings.userId, set: updates });
+
+    const [updated] = await db
+      .select()
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId))
+      .limit(1);
+
+    if (!updated) {
+      return NextResponse.json<SettingsResponse>({
+        monthlySpendCapUsd: 50,
+        defaultMaxWebSearches: 3,
+        hasApiKey: false,
+      });
+    }
+
     return NextResponse.json<SettingsResponse>({
-      monthlySpendCapUsd: 50,
-      defaultMaxWebSearches: 3,
-      hasApiKey: false,
+      monthlySpendCapUsd: Number(updated.monthlySpendCapUsd),
+      defaultMaxWebSearches: updated.defaultMaxWebSearches,
+      hasApiKey: updated.anthropicApiKeyEncrypted !== null,
     });
+  } catch (err) {
+    console.error('Settings PATCH error:', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-
-  return NextResponse.json<SettingsResponse>({
-    monthlySpendCapUsd: Number(updated.monthlySpendCapUsd),
-    defaultMaxWebSearches: updated.defaultMaxWebSearches,
-    hasApiKey: updated.anthropicApiKeyEncrypted !== null,
-  });
 }
