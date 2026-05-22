@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "worker": "tsx worker/index.ts",
-    "worker:build": "esbuild worker/index.ts --bundle --platform=node --outfile=dist/worker.js"
+    "worker:build": "esbuild worker/index.ts --bundle --platform=node --outfile=dist/worker.js",
+    "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
