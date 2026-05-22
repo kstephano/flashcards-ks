@@ -10,7 +10,7 @@ interface StudyProgressProps {
 }
 
 export function StudyProgress({ current, total, onBury }: StudyProgressProps) {
-  const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
+  const percentage = total > 0 ? Math.round(((current - 1) / total) * 100) : 0;
 
   return (
     <div className="w-full max-w-2xl mx-auto flex flex-col gap-2">

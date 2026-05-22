@@ -1,25 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { StudyCard } from '@/components/study/StudyCard';
 import { RatingButtons } from '@/components/study/RatingButtons';
 import { StudyProgress } from '@/components/study/StudyProgress';
-
-interface DueCard {
-  id: string;
-  cardType: 'qa' | 'cloze' | 'multiple_choice';
-  front: string;
-  back: string;
-  explanation: string | null;
-  sourcePage: number | null;
-  easeFactor: number;
-  intervalDays: number;
-  repetitions: number;
-  dueDate: string;
-}
+import { DueCard } from '@/types/study';
 
 export default function StudyPage() {
   const params = useParams();
@@ -33,6 +21,8 @@ export default function StudyPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFinished, setIsFinished] = useState(false);
   const [reviewedCount, setReviewedCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const buriedIds = useRef<Set<string>>(new Set());
 
   // Start review session on mount
   useEffect(() => {
@@ -43,12 +33,17 @@ export default function StudyPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ deckId: id }),
         });
-        if (!res.ok) throw new Error('Failed to start session');
+        if (!res.ok) {
+          setError('Failed to start study session. Please try again.');
+          setIsLoading(false);
+          return;
+        }
         const data = await res.json();
         setSession(data.session);
         setDueCards(data.dueCards);
       } catch (err) {
         console.error(err);
+        setError('Failed to start study session. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -101,6 +96,16 @@ export default function StudyPage() {
   );
 
   const handleBury = useCallback(() => {
+    const currentCard = dueCards[currentIndex];
+    if (!currentCard) return;
+
+    if (buriedIds.current.has(currentCard.id)) {
+      // Card already buried once — force review with "Again" instead of burying again
+      handleRate(0);
+      return;
+    }
+
+    buriedIds.current.add(currentCard.id);
     setDueCards((prev) => {
       const next = [...prev];
       const [buried] = next.splice(currentIndex, 1);
@@ -108,13 +113,26 @@ export default function StudyPage() {
     });
     // currentIndex stays the same, which now points to the next card
     setIsRevealed(false);
-  }, [currentIndex]);
+  }, [currentIndex, dueCards, handleRate]);
 
   // Loading state
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-96">
         <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-96 gap-4">
+        <p className="text-xl font-medium">Something went wrong</p>
+        <p className="text-muted-foreground">{error}</p>
+        <Button variant="outline" onClick={() => router.push(`/decks/${id}`)}>
+          Go back
+        </Button>
       </div>
     );
   }

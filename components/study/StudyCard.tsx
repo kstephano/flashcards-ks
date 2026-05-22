@@ -1,19 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-
-interface DueCard {
-  id: string;
-  cardType: 'qa' | 'cloze' | 'multiple_choice';
-  front: string;
-  back: string;
-  explanation: string | null;
-  sourcePage: number | null;
-  easeFactor: number;
-  intervalDays: number;
-  repetitions: number;
-  dueDate: string;
-}
+import { DueCard } from '@/types/study';
 
 interface StudyCardProps {
   card: DueCard;
