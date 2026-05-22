@@ -5,6 +5,7 @@ import { trackedMessage } from '@/lib/anthropic/client';
 import { loadPrompt } from '@/lib/prompt-loader';
 import { updateJobProgress } from '@/lib/jobs/queue';
 import type Anthropic from '@anthropic-ai/sdk';
+import type { TextBlock } from '@anthropic-ai/sdk/resources/messages/messages';
 import pino from 'pino';
 
 const log = pino();
@@ -46,7 +47,7 @@ export async function runEnrichStep(jobId: string): Promise<void> {
   });
 
   const enrichContext = response.content
-    .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
+    .filter((b): b is TextBlock => b.type === 'text')
     .map((b) => b.text)
     .join('\n')
     .trim();

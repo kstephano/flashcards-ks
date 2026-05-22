@@ -1,25 +1,20 @@
 import { claimNextJob, checkCancelled, failJob } from './queue';
 import { runStructureStep } from './steps/structure';
+import { runEnrichStep } from './steps/enrich';
+import { runGenerateStep } from './steps/generate';
+import { runJudgeStep } from './steps/judge';
+import { runRegenerateStep } from './steps/regenerate';
+import { runPersistStep } from './steps/persist';
+import { getSignedUrl } from '@/lib/pdf/storage';
 import { db } from '@/lib/db';
-import { generationJobs } from '@/lib/db/schema';
+import { generationJobs, sourcePdfs } from '@/lib/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
 import pino from 'pino';
 
 const log = pino();
 
-// Stub imports — these modules will be created in Phase 4
-async function runEnrichStep(_jobId: string): Promise<void> {
-  throw new Error('Enrich step not yet implemented');
-}
-async function runGenerateStep(_jobId: string): Promise<void> {
-  throw new Error('Generate step not yet implemented');
-}
-async function runJudgeAndPersistStep(_jobId: string): Promise<void> {
-  throw new Error('Judge and persist step not yet implemented');
-}
-
 export async function runWorkerTick(): Promise<{ processed: boolean }> {
-  // Check for approved jobs waiting to continue past outline approval
+  // Check for approved jobs waiting to continue
   const resumableJob = await db.query.generationJobs.findFirst({
     where: and(
       eq(generationJobs.status, 'awaiting_outline_approval'),
@@ -35,7 +30,7 @@ export async function runWorkerTick(): Promise<{ processed: boolean }> {
 
   const job = await db.query.generationJobs.findFirst({
     where: eq(generationJobs.id, jobId),
-    columns: { status: true },
+    columns: { status: true, sourcePdfId: true, examName: true },
   });
   if (!job) return { processed: false };
 
@@ -46,12 +41,36 @@ export async function runWorkerTick(): Promise<{ processed: boolean }> {
     }
 
     if (job.status === 'awaiting_outline_approval') {
-      if (await checkCancelled(jobId)) return { processed: true };
+      // Enrich
       await runEnrichStep(jobId);
       if (await checkCancelled(jobId)) return { processed: true };
-      await runGenerateStep(jobId);
+
+      // Generate
+      const rawCards = await runGenerateStep(jobId);
       if (await checkCancelled(jobId)) return { processed: true };
-      await runJudgeAndPersistStep(jobId);
+
+      // Judge
+      const judgedCards = await runJudgeStep(rawCards, job.examName, jobId);
+      if (await checkCancelled(jobId)) return { processed: true };
+
+      // Get signed URL for regeneration (same PDF)
+      const pdfRecord = await db.query.sourcePdfs.findFirst({
+        where: eq(sourcePdfs.id, job.sourcePdfId),
+        columns: { storagePath: true },
+      });
+      const signedUrl = pdfRecord ? await getSignedUrl(pdfRecord.storagePath, 7200) : '';
+
+      // Regenerate rejected cards
+      const { accepted, dropped } = await runRegenerateStep(
+        judgedCards,
+        job.examName,
+        jobId,
+        signedUrl,
+      );
+      if (await checkCancelled(jobId)) return { processed: true };
+
+      // Persist
+      await runPersistStep(jobId, accepted, dropped);
       return { processed: true };
     }
   } catch (e: unknown) {
