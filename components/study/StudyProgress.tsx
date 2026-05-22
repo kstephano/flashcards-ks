@@ -18,7 +18,7 @@ export function StudyProgress({ current, total, onBury }: StudyProgressProps) {
         <span className="text-sm text-muted-foreground">
           Card {current} of {total}
         </span>
-        <Button variant="ghost" size="xs" onClick={onBury}>
+        <Button variant="ghost" size="sm" onClick={onBury}>
           Bury
         </Button>
       </div>
