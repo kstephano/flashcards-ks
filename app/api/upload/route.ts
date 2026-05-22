@@ -118,6 +118,7 @@ export async function POST(req: NextRequest) {
     .values({
       userId,
       sourcePdfId: pdfRecord.id,
+      targetSectionId: sectionId,
       examName,
       requestedCardCount,
       maxWebSearches,

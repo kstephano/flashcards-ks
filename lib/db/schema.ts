@@ -204,6 +204,7 @@ export const generationJobs = pgTable(
     sourcePdfId: uuid('source_pdf_id')
       .notNull()
       .references(() => sourcePdfs.id),
+    targetSectionId: uuid('target_section_id').references(() => sections.id, { onDelete: 'set null' }),
     examName: varchar('exam_name', { length: 255 }),
     requestedCardCount: integer('requested_card_count'),
     maxWebSearches: integer('max_web_searches').default(3).notNull(),
