@@ -17,26 +17,61 @@ export default async function SectionPage({ params }: { params: Promise<{ id: st
   const deckList = await db.query.decks.findMany({ where: eq(decks.sectionId, sid), orderBy: desc(decks.createdAt) });
 
   return (
-    <div className="max-w-4xl mx-auto p-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      {/* Header with breadcrumb */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground">
-            <Link href="/" className="hover:underline">Projects</Link> / <Link href={`/projects/${id}`} className="hover:underline">{project.name}</Link> / {section.name}
-          </p>
-          <h1 className="text-2xl font-bold mt-1">{section.name}</h1>
+          <nav className="text-sm text-muted-foreground mb-1">
+            <Link href="/" className="hover:text-foreground transition-colors">Projects</Link>
+            <span className="mx-1.5">/</span>
+            <Link href={`/projects/${id}`} className="hover:text-foreground transition-colors">{project.name}</Link>
+            <span className="mx-1.5">/</span>
+            <span className="text-foreground font-medium">{section.name}</span>
+          </nav>
+          <h1 className="text-2xl font-bold tracking-tight">{section.name}</h1>
         </div>
         <UploadModal sectionId={sid}>
-          <Button>Generate Flashcards</Button>
+          <Button className="h-11 px-5 font-semibold">Generate Flashcards</Button>
         </UploadModal>
       </div>
+
+      {/* Content */}
       {deckList.length === 0 ? (
-        <p className="text-muted-foreground">No decks yet. Upload a PDF to generate flashcards.</p>
+        <div className="flex flex-col items-center justify-center rounded-xl border bg-card py-16 px-6 text-center space-y-4">
+          <div className="text-5xl">🃏</div>
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold">No decks yet</h2>
+            <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+              Upload a PDF to generate flashcards for this section.
+            </p>
+          </div>
+          <UploadModal sectionId={sid}>
+            <Button className="h-11 px-5 font-semibold">Generate Flashcards</Button>
+          </UploadModal>
+        </div>
       ) : (
-        <div className="grid gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {deckList.map(d => (
-            <Link key={d.id} href={`/decks/${d.id}`} className="block rounded-lg border p-4 hover:bg-muted/50 transition-colors">
-              <div className="font-medium">{d.name}</div>
-              {d.examName && <div className="text-xs text-muted-foreground mt-1">Exam: {d.examName}</div>}
+            <Link
+              key={d.id}
+              href={`/decks/${d.id}`}
+              className="group rounded-xl border bg-card p-5 hover:shadow-md transition-shadow cursor-pointer"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold truncate group-hover:text-primary transition-colors">
+                    {d.name}
+                  </div>
+                  {d.examName && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Exam: {d.examName}
+                    </div>
+                  )}
+                </div>
+                <span className="text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0 mt-0.5">
+                  →
+                </span>
+              </div>
             </Link>
           ))}
         </div>

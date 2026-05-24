@@ -87,6 +87,7 @@ export default function SettingsPage() {
       setApiKey('');
       setClearApiKey(false);
       setSuccess(true);
+      window.dispatchEvent(new CustomEvent('spend-settings-updated'));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -111,99 +112,117 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-8">
-      <h1 className="text-2xl font-bold tracking-tight mb-6">Settings</h1>
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Configure your API usage and preferences</p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* Monthly Spend Cap */}
-        <div className="space-y-1.5">
-          <label htmlFor="monthlySpendCap" className="text-sm font-medium">
-            Monthly Spend Cap (USD)
-          </label>
-          <Input
-            id="monthlySpendCap"
-            type="number"
-            min={0}
-            step={0.01}
-            value={monthlySpendCap}
-            onChange={(e) => { setSuccess(false); setMonthlySpendCap(e.target.value); }}
-          />
-          <p className="text-xs text-muted-foreground">
-            Stop generating new cards when monthly API spend reaches this amount.
-          </p>
-        </div>
+        <div className="rounded-xl border bg-card p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Usage Limits
+          </h2>
 
-        {/* Default Max Web Searches */}
-        <div className="space-y-1.5">
-          <label htmlFor="maxWebSearches" className="text-sm font-medium">
-            Default Max Web Searches
-          </label>
-          <Input
-            id="maxWebSearches"
-            type="number"
-            min={0}
-            max={10}
-            value={maxWebSearches}
-            onChange={(e) => { setSuccess(false); setMaxWebSearches(e.target.value); }}
-          />
-          <p className="text-xs text-muted-foreground">
-            Maximum number of web searches per generation job (0–10).
-          </p>
+          <div className="space-y-1.5">
+            <label htmlFor="monthlySpendCap" className="text-sm font-medium">
+              Monthly Spend Cap (USD)
+            </label>
+            <Input
+              id="monthlySpendCap"
+              type="number"
+              min={0}
+              step={1}
+              value={monthlySpendCap}
+              onChange={(e) => { setSuccess(false); setMonthlySpendCap(e.target.value); }}
+              className="h-11"
+            />
+            <p className="text-xs text-muted-foreground">
+              Stop generating new cards when monthly API spend reaches this amount.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="maxWebSearches" className="text-sm font-medium">
+              Default Max Web Searches
+            </label>
+            <Input
+              id="maxWebSearches"
+              type="number"
+              min={0}
+              max={10}
+              value={maxWebSearches}
+              onChange={(e) => { setSuccess(false); setMaxWebSearches(e.target.value); }}
+              className="h-11"
+            />
+            <p className="text-xs text-muted-foreground">
+              Maximum number of web searches per generation job (0–10).
+            </p>
+          </div>
         </div>
 
         {/* Anthropic API Key */}
-        <div className="space-y-1.5">
-          <label htmlFor="apiKey" className="text-sm font-medium">
-            Anthropic API Key
-          </label>
-          {settings?.hasApiKey && !clearApiKey ? (
-            <div className="flex items-center gap-2">
-              <Input
-                id="apiKey"
-                type="password"
-                value=""
-                placeholder="••••••••••••••••"
-                readOnly
-                className="flex-1"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setClearApiKey(true)}
-              >
-                Clear
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              <Input
-                id="apiKey"
-                type="password"
-                value={clearApiKey ? '' : apiKey}
-                placeholder={clearApiKey ? 'Enter new API key or leave blank to remove' : 'sk-ant-...'}
-                onChange={(e) => {
-                  setSuccess(false);
-                  setClearApiKey(false);
-                  setApiKey(e.target.value);
-                }}
-              />
-              {settings?.hasApiKey && clearApiKey && (
-                <p className="text-xs text-muted-foreground">
-                  The existing key will be removed on save. Enter a new key to replace it.
-                </p>
-              )}
-            </div>
-          )}
-          <p className="text-xs text-muted-foreground">
-            Your key is encrypted at rest and never returned in API responses.
-          </p>
+        <div className="rounded-xl border bg-card p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            API Configuration
+          </h2>
+
+          <div className="space-y-1.5">
+            <label htmlFor="apiKey" className="text-sm font-medium">
+              Anthropic API Key
+            </label>
+            {settings?.hasApiKey && !clearApiKey ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  id="apiKey"
+                  type="password"
+                  value=""
+                  placeholder="••••••••••••••••"
+                  readOnly
+                  className="flex-1 h-11"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-11 px-4"
+                  onClick={() => setClearApiKey(true)}
+                >
+                  Clear
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <Input
+                  id="apiKey"
+                  type="password"
+                  value={clearApiKey ? '' : apiKey}
+                  placeholder={clearApiKey ? 'Enter new API key or leave blank to remove' : 'sk-ant-...'}
+                  className="h-11"
+                  onChange={(e) => {
+                    setSuccess(false);
+                    setClearApiKey(false);
+                    setApiKey(e.target.value);
+                  }}
+                />
+                {settings?.hasApiKey && clearApiKey && (
+                  <p className="text-xs text-muted-foreground">
+                    The existing key will be removed on save. Enter a new key to replace it.
+                  </p>
+                )}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Your key is encrypted at rest and never returned in API responses.
+            </p>
+          </div>
         </div>
 
         {/* Submit */}
         <div className="flex items-center gap-4">
-          <Button type="submit" disabled={saving}>
-            {saving ? 'Saving…' : 'Save'}
+          <Button type="submit" disabled={saving} className="h-11 px-6 font-semibold">
+            {saving ? 'Saving…' : 'Save Settings'}
           </Button>
 
           {success && (

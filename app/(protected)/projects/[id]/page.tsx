@@ -14,21 +14,46 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const sectionList = await db.query.sections.findMany({ where: eq(sections.projectId, id), orderBy: asc(sections.orderIndex) });
 
   return (
-    <div className="max-w-4xl mx-auto p-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      {/* Header with breadcrumb */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground"><Link href="/" className="hover:underline">Projects</Link> / {project.name}</p>
-          <h1 className="text-2xl font-bold mt-1">{project.name}</h1>
+          <nav className="text-sm text-muted-foreground mb-1">
+            <Link href="/" className="hover:text-foreground transition-colors">Projects</Link>
+            <span className="mx-1.5">/</span>
+            <span className="text-foreground font-medium">{project.name}</span>
+          </nav>
+          <h1 className="text-2xl font-bold tracking-tight">{project.name}</h1>
         </div>
         <CreateSectionDialog projectId={id} />
       </div>
+
+      {/* Content */}
       {sectionList.length === 0 ? (
-        <p className="text-muted-foreground">No sections yet. Create a section to organise your decks.</p>
+        <div className="flex flex-col items-center justify-center rounded-xl border bg-card py-16 px-6 text-center space-y-4">
+          <div className="text-5xl">📂</div>
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold">No sections yet</h2>
+            <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+              Create a section to organise your decks within this project.
+            </p>
+          </div>
+          <CreateSectionDialog projectId={id} />
+        </div>
       ) : (
-        <div className="grid gap-3">
+        <div className="space-y-3">
           {sectionList.map(s => (
-            <Link key={s.id} href={`/projects/${id}/sections/${s.id}`} className="block rounded-lg border p-4 hover:bg-muted/50 transition-colors">
-              <div className="font-medium">{s.name}</div>
+            <Link
+              key={s.id}
+              href={`/projects/${id}/sections/${s.id}`}
+              className="group flex items-center justify-between rounded-xl border bg-card p-5 hover:shadow-md transition-shadow cursor-pointer"
+            >
+              <span className="font-medium group-hover:text-primary transition-colors">
+                {s.name}
+              </span>
+              <span className="text-muted-foreground group-hover:text-foreground transition-colors">
+                →
+              </span>
             </Link>
           ))}
         </div>

@@ -19,21 +19,36 @@ export default async function DeckPage({ params }: { params: Promise<{ id: strin
   const cardList = await db.query.cards.findMany({ where: eq(cards.deckId, id), orderBy: asc(cards.createdAt) });
 
   return (
-    <div className="max-w-6xl mx-auto p-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground">
-            <Link href={`/projects/${project.id}/sections/${section.id}`} className="hover:underline">{section.name}</Link> / {deck.name}
-          </p>
-          <h1 className="text-2xl font-bold mt-1">{deck.name}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{cardList.length} cards</p>
+          <nav className="text-sm text-muted-foreground mb-1">
+            <Link href="/" className="hover:text-foreground transition-colors">Projects</Link>
+            <span className="mx-1.5">/</span>
+            <Link href={`/projects/${project.id}`} className="hover:text-foreground transition-colors">{project.name}</Link>
+            <span className="mx-1.5">/</span>
+            <Link href={`/projects/${project.id}/sections/${section.id}`} className="hover:text-foreground transition-colors">{section.name}</Link>
+            <span className="mx-1.5">/</span>
+            <span className="text-foreground font-medium">{deck.name}</span>
+          </nav>
+          <h1 className="text-2xl font-bold tracking-tight">{deck.name}</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{cardList.length} cards</p>
         </div>
-        <div className="flex gap-2">
-          <Link href={`/decks/${id}/study`}><Button variant="default">Study</Button></Link>
-          <a href={`/api/export/${id}`}><Button variant="outline">Export to Anki</Button></a>
+        <div className="flex gap-2 flex-shrink-0">
+          <Link href={`/decks/${id}/study`}>
+            <Button className="h-11 px-5 font-semibold">Study</Button>
+          </Link>
+          <a href={`/api/export/${id}`}>
+            <Button variant="outline" className="h-11 px-5 font-semibold">Export to Anki</Button>
+          </a>
         </div>
       </div>
-      <CardTable cards={cardList} />
+
+      {/* Card table — horizontally scrollable on mobile */}
+      <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
+        <CardTable cards={cardList} />
+      </div>
     </div>
   );
 }

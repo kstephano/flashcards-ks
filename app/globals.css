@@ -2,6 +2,15 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Mobile touch & safe area */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  padding-top: env(safe-area-inset-top);
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

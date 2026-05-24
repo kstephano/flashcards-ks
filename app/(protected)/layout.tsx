@@ -7,9 +7,12 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   const session = await auth();
   if (!session?.user) redirect('/login');
   return (
-    <div className="min-h-screen flex flex-col">
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       <Header />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 w-full">{children}</main>
       <JobStatusPanel />
     </div>
   );
