@@ -10,6 +10,6 @@ export async function GET() {
   const settings = await db.query.userSettings.findFirst({ where: eq(userSettings.userId, session.user.id) });
   return NextResponse.json({
     currentMonthSpendUsd: 0,
-    monthlyCapUsd: Number(settings?.monthlySpendCapUsd ?? 50),
+    monthlyCapUsd: Number(settings?.monthlySpendCapUsd ?? 10),
   });
 }

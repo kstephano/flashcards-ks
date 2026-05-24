@@ -88,7 +88,7 @@ export const userSettings = pgTable('user_settings', {
     precision: 10,
     scale: 4,
   })
-    .default('50')
+    .default('10')
     .notNull(),
   defaultMaxWebSearches: integer('default_max_web_searches').default(3).notNull(),
   anthropicApiKeyEncrypted: text('anthropic_api_key_encrypted'),

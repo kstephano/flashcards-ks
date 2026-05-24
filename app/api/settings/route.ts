@@ -23,7 +23,7 @@ export async function GET(): Promise<NextResponse> {
 
   if (!settings) {
     return NextResponse.json<SettingsResponse>({
-      monthlySpendCapUsd: 50,
+      monthlySpendCapUsd: 10,
       defaultMaxWebSearches: 3,
       hasApiKey: false,
     });
@@ -94,7 +94,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
     if (!updated) {
       return NextResponse.json<SettingsResponse>({
-        monthlySpendCapUsd: 50,
+        monthlySpendCapUsd: 10,
         defaultMaxWebSearches: 3,
         hasApiKey: false,
       });
